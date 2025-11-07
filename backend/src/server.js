@@ -1,27 +1,30 @@
 import express from "express";
 import bodyParser from "body-parser";
-import viewEngine from "./config/viewEngine.js";
-import initWebRoutes from "./route/web.js";
-import connectDB from "./config/configdb.js";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import connectDB from "./config/configDB.js";
+import initWebRoutes from "./route/web.js";
 
 dotenv.config();
+const app = express();
 
-let app = express();
+// ✅ Xác định __dirname (vì đang dùng module type: "module")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Config middleware
-app.use(bodyParser.json());
+// ✅ Cấu hình đường dẫn đến thư mục views trong src
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Cấu hình view engine và routes
-viewEngine(app);
+// Routes
 initWebRoutes(app);
 
-// Kết nối MongoDB
+// DB + Server
+const PORT = process.env.PORT || 3000;
 connectDB();
-
-// Cổng chạy server
-let port = process.env.PORT || 8686;
-app.listen(port, () => {
-    console.log(`🚀 Backend Node.js running on port: ${port}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
