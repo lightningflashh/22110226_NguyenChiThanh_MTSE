@@ -1,6 +1,6 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import { loginUser } from '~/api'
+import { loginUser } from '~/api/api'
 import { toast } from 'react-toastify'
 import { useNavigate, Link } from 'react-router-dom'
 

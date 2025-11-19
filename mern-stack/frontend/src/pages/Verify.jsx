@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { verifyAccount } from '~/api'
+import { verifyAccount } from '~/api/api'
 import { toast } from 'react-toastify'
 
 export default function Verify() {

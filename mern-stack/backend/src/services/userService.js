@@ -47,12 +47,12 @@ const login = async (reqBody) => {
     if (!isMatch) throw new Error('Invalid password')
 
     const accessToken = await JwtProvider.generateToken(
-        { _id: user._id, email: user.email },
+        { _id: user._id, email: user.email, role: user.role },
         env.ACCESS_TOKEN_SECRET_SIGNATURE,
         env.ACCESS_TOKEN_LIFE
     )
     const refreshToken = await JwtProvider.generateToken(
-        { _id: user._id, email: user.email },
+        { _id: user._id, email: user.email, role: user.role },
         env.REFRESH_TOKEN_SECRET_SIGNATURE,
         env.REFRESH_TOKEN_LIFE
     )
@@ -63,7 +63,7 @@ const login = async (reqBody) => {
 const refreshToken = async (clientRefreshToken) => {
     const decoded = await JwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
     const accessToken = await JwtProvider.generateToken(
-        { _id: decoded._id, email: decoded.email },
+        { _id: decoded._id, email: decoded.email, role: decoded.role },
         env.ACCESS_TOKEN_SECRET_SIGNATURE,
         env.ACCESS_TOKEN_LIFE
     )

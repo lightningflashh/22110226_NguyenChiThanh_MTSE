@@ -1,6 +1,6 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import { registerUser } from '~/api'
+import { registerUser } from '~/api/api'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 

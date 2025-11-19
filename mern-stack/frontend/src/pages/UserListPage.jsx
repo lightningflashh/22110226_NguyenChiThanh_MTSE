@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import instance from "~/api";
+import instance from "~/api/api";
 import { useNavigate } from "react-router-dom";
 
 const UserListPage = () => {
