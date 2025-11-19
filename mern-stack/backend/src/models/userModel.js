@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
         displayName: { type: String, required: true, trim: true },
         avatar: { type: String, default: null },
         isActive: { type: Boolean, default: false },
-        role: { type: String, enum: ['user', 'admin'], default: 'user' },
+        role: { type: String, enum: ['user', 'admin', 'seller'], default: 'user' },
         verifyToken: { type: String, default: null },
         _destroy: { type: Boolean, default: false }
     },

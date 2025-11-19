@@ -3,7 +3,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import exitHook from 'async-exit-hook'
 
-import { CONNECT_DB, CLOSE_DB } from './config/mongodb.js'
+import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb.js'
 import { env } from '~/config/environment.js'
 import { APIs_V1 } from '~/routes/v1/index.js'
 import { corsOptions } from '~/config/cors.js'

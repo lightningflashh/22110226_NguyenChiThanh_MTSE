@@ -32,6 +32,18 @@ const isAuthorized = async (req, res, next) => {
     }
 }
 
+const authorizeRoles = (roles) => (req, res, next) => {
+    const userRole = req.jwtDecoded?.role;
+
+    if (!roles.includes(userRole)) {
+        next(new ApiError(StatusCodes.FORBIDDEN, `Chỉ các vai trò ${roles.join(', ')} mới có quyền truy cập.`));
+        return
+    }
+
+    next();
+};
+
 export const authMiddleware = {
-    isAuthorized
+    isAuthorized,
+    authorizeRoles
 }

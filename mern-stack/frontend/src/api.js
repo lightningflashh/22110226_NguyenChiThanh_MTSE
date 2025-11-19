@@ -13,5 +13,8 @@ export const verifyAccount = (data) => instance.post('/auth/verify', data)
 export const loginUser = (data) => instance.post('/auth/login', data)
 
 export const getAllUsers = () => instance.get('/users')
+export const getProducts = (page = 1, limit = 10) => {
+    return instance.get(`/products?page=${page}&limit=${limit}`);
+}
 
 export default instance

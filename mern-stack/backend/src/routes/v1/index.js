@@ -2,6 +2,8 @@ import express from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { authRoute } from '~/routes/v1/authRoute'
 import { userRoute } from '~/routes/v1/userRoute'
+import { productRoute } from '~/routes/v1/productRoute'
+import { apiLimiter } from '~/middlewares/rateLimitMiddleware'
 
 const router = express.Router()
 
@@ -15,6 +17,7 @@ router.get('/status', (req, res) => {
 
 // Auth routes
 router.use('/auth', authRoute)
-router.use('/users', userRoute)
+router.use('/users', apiLimiter, userRoute)
+router.use('/products', apiLimiter, productRoute)
 
 export const APIs_V1 = router
