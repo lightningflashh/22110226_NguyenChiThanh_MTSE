@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
-import { JwtProvider } from '~/providers/JwtProvider'
+import { jwtProvider } from '~/providers/JwtProvider'
 import { env } from '~/config/environment'
 import ApiError from '~/utils/ApiError'
 
@@ -15,7 +15,7 @@ const isAuthorized = async (req, res, next) => {
 
     try {
         // Giải mã access token
-        const decoded = await JwtProvider.verifyToken(accessToken, env.ACCESS_TOKEN_SECRET_SIGNATURE)
+        const decoded = await jwtProvider.verifyToken(accessToken, env.ACCESS_TOKEN_SECRET_SIGNATURE)
         // Lưu thông tin user vào req để các middleware và route handler khác có thể sử dụng
         req.jwtDecoded = decoded
 

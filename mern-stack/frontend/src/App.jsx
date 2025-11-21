@@ -1,25 +1,32 @@
 import { Routes, Route } from 'react-router-dom'
-import Register from '~/pages/Register'
-import Verify from '~/pages/Verify'
-import Login from '~/pages/Login'
-import UserListPage from '~/pages/UserListPage'
-import ForgotPassword from '~/pages/ForgotPassword'
+import MainLayout from '~/layouts/MainLayout'
+import AuthLayout from '~/layouts/AuthLayout'
+
 import HomePage from '~/pages/HomePage'
-import Navbar from '~/components/Navbar/Navbar'
+import Login from '~/pages/Auth/Login'
+import Register from '~/pages/Auth/Register'
+import ForgotPassword from '~/pages/Auth/ForgotPassword'
+import ResetPassword from '~/pages/Auth/ResetPassword'
+import Verify from '~/pages/Auth/Verify'
 
 function App() {
   return (
-    <div>
-        <Navbar/>
-        <Routes>
+    <Routes>
+      {/* Layout chính */}
+      <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify" element={<Verify />} />
+        {/* Thêm các trang cần Navbar */}
+      </Route>
+
+      {/* Layout Auth */}
+      <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
-        <Route path="/users" element={<UserListPage />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Routes>
-    </div>
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify" element={<Verify />} />
+      </Route>
+    </Routes>
   )
 }
 

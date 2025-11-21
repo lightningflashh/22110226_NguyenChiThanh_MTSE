@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import instance from "~/api/api";
+import {getAllUsers} from "~/api";
 import { useNavigate } from "react-router-dom";
 
 const UserListPage = () => {
@@ -10,7 +10,7 @@ const UserListPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await instance.get("/users");
+        const res = await getAllUsers();
 
         // Đảm bảo res.data luôn là mảng
         const data = Array.isArray(res.data)

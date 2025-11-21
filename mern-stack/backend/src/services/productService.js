@@ -32,7 +32,6 @@ const createNewProduct = async (productData) => {
         throw new Error('Vui lòng cung cấp đầy đủ tên, giá, hình ảnh, danh mục và thương hiệu.');
     }
 
-    // Tạo sản phẩm mới với rating/numReviews mặc định là 0
     return await Product.create({
         ...productData,
         rating: 0,

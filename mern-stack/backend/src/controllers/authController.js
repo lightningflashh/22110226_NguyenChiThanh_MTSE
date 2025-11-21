@@ -70,10 +70,30 @@ const refreshToken = async (req, res, next) => {
     }
 }
 
+const forgotPassword = async (req, res) => {
+    try {
+        await userService.forgotPassword(req.body.email)
+        res.status(StatusCodes.OK).json({ message: 'Email reset password đã được gửi' })
+    } catch (err) {
+        next(err)
+    }
+}
+
+const resetPassword = async (req, res) => {
+    try {
+        const updatedUser = await userService.resetPassword(req.body)
+        res.status(StatusCodes.OK).json(updatedUser)
+    } catch (err) {
+        next(err)
+    }
+}
+
 export const authController = {
     createNew,
     verifyAccount,
     login,
     logout,
-    refreshToken
+    refreshToken,
+    forgotPassword,
+    resetPassword
 }

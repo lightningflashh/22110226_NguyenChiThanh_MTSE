@@ -2,7 +2,6 @@ import React from "react";
 import { ShoppingBagIcon, StarIcon } from "@heroicons/react/24/solid";
 
 const ProductCard = ({ product }) => {
-  // Logic giảm giá giả lập
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
   const discountPercent = hasDiscount 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
@@ -27,7 +26,7 @@ const ProductCard = ({ product }) => {
         </div>
 
         <img 
-          src={product.image || "https://via.placeholder.com/300x300?text=No+Image"}
+          src={"assets/products/macbook-pro-14-m1-max-2021-10-core-cpu-xam-1-750x500.jpg" || product.image}
           alt={product.name}
           className="object-contain w-full h-full transition-transform duration-500 group-hover:scale-110 drop-shadow-md mix-blend-multiply"
         />

@@ -17,7 +17,7 @@ const verifyToken = async (token, secretKey) => {
     }
 }
 
-export const JwtProvider = {
+export const jwtProvider = {
     generateToken,
     verifyToken
 }
