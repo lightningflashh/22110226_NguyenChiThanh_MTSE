@@ -6,141 +6,176 @@ import { GoogleMailerProvider } from '~/providers/GoogleMailerProvider.js'
 import { env } from '~/config/environment.js'
 import ApiError from '~/utils/ApiError.js'
 import { StatusCodes } from 'http-status-codes'
+import redis from '~/config/redis.js'
 
 const getVerifyLink = (token, email) => {
-    return `http://localhost:3000/verify?token=${token}&email=${email}`
+  return `http://localhost:3000/verify?token=${token}&email=${email}`
 }
 
 const createNew = async (reqBody) => {
-    const existingUser = await User.findOne({ email: reqBody.email })
-    if (existingUser) throw new ApiError(StatusCodes.BAD_REQUEST, 'Email already exists')
+  const existingUser = await User.findOne({ email: reqBody.email })
+  if (existingUser) throw new ApiError(StatusCodes.BAD_REQUEST, 'Email already exists')
 
-    const nameFromEmail = reqBody.email.split('@')[0]
-    const verifyToken = uuidv4()
+  const nameFromEmail = reqBody.email.split('@')[0]
+  const verifyToken = uuidv4()
 
-    const newUser = new User({
-        email: reqBody.email,
-        password: reqBody.password,
-        username: nameFromEmail,
-        displayName: nameFromEmail,
-        verifyToken,
-        role: 'user',
-        isActive: false
-    })
+  const newUser = new User({
+    email: reqBody.email,
+    password: reqBody.password,
+    username: nameFromEmail,
+    displayName: nameFromEmail,
+    verifyToken,
+    role: 'user',
+    isActive: false
+  })
 
-    const createdUser = await newUser.save()
+  const createdUser = await newUser.save()
 
-    const verifyLink = getVerifyLink(verifyToken, createdUser.email)
-    const htmlContent = `
+  const verifyLink = getVerifyLink(verifyToken, createdUser.email)
+  const htmlContent = `
     <h2>Xác thực tài khoản</h2>
     <p>Xin chào ${createdUser.displayName},</p>
     <p>Nhấn vào link dưới đây để kích hoạt tài khoản:</p>
     <a href="${verifyLink}">Xác thực tài khoản</a>
     <p>Link sẽ hết hạn trong 24h.</p>
   `
-    await GoogleMailerProvider.sendEmail({
-        to: createdUser.email,
-        toName: createdUser.displayName,
-        subject: 'Xác thực tài khoản',
-        html: htmlContent
-    })
+  await GoogleMailerProvider.sendEmail({
+    to: createdUser.email,
+    toName: createdUser.displayName,
+    subject: 'Xác thực tài khoản',
+    html: htmlContent
+  })
 
-    return pickUser(createdUser)
+  return pickUser(createdUser)
 }
 
 const verifyAccount = async (reqBody) => {
-    const user = await User.findOne({ email: reqBody.email })
-    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
-    if (user.isActive) throw new ApiError(StatusCodes.BAD_REQUEST, 'Account already verified')
-    if (reqBody.token !== user.verifyToken) throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid verification token')
+  const user = await User.findOne({ email: reqBody.email })
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  if (user.isActive) throw new ApiError(StatusCodes.BAD_REQUEST, 'Account already verified')
+  if (reqBody.token !== user.verifyToken) throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid verification token')
 
-    user.isActive = true
-    user.verifyToken = null
-    await user.save()
+  user.isActive = true
+  user.verifyToken = null
+  await user.save()
 
-    return pickUser(user)
+  return pickUser(user)
 }
 
 const login = async (reqBody) => {
-    const user = await User.findOne({ email: reqBody.email })
-    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
-    if (!user.isActive) throw new ApiError(StatusCodes.BAD_REQUEST, 'Account not verified')
+  const user = await User.findOne({ email: reqBody.email })
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  if (!user.isActive) throw new ApiError(StatusCodes.BAD_REQUEST, 'Account not verified')
 
-    const isMatch = await user.matchPassword(reqBody.password)
-    if (!isMatch) throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid password')
+  const isMatch = await user.matchPassword(reqBody.password)
+  if (!isMatch) throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid password')
 
-    const accessToken = await jwtProvider.generateToken(
-        { _id: user._id, email: user.email, role: user.role },
-        env.ACCESS_TOKEN_SECRET_SIGNATURE,
-        env.ACCESS_TOKEN_LIFE
-    )
-    const refreshToken = await jwtProvider.generateToken(
-        { _id: user._id, email: user.email, role: user.role },
-        env.REFRESH_TOKEN_SECRET_SIGNATURE,
-        env.REFRESH_TOKEN_LIFE
-    )
+  const accessToken = await jwtProvider.generateToken(
+    { _id: user._id, email: user.email, role: user.role },
+    env.ACCESS_TOKEN_SECRET_SIGNATURE,
+    env.ACCESS_TOKEN_LIFE
+  )
+  const refreshToken = await jwtProvider.generateToken(
+    { _id: user._id, email: user.email, role: user.role },
+    env.REFRESH_TOKEN_SECRET_SIGNATURE,
+    env.REFRESH_TOKEN_LIFE
+  )
 
-    return { ...pickUser(user), accessToken, refreshToken }
+  // await redis.set(
+  //     `refreshToken:${user._id}`,
+  //     refreshToken,
+  //     { EX: 60 * 60 * 24 * 30 }
+  // )
+
+  await redis.set(
+    `refreshToken:${user._id.toString()}`,
+    refreshToken,
+    { EX: 2 * 60 } // 2 phút = 120 giây
+  )
+
+
+  return { ...pickUser(user), accessToken, refreshToken }
 }
 
 const refreshToken = async (clientRefreshToken) => {
-    const decoded = await jwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
-    const accessToken = await jwtProvider.generateToken(
-        { _id: decoded._id, email: decoded.email, role: decoded.role },
-        env.ACCESS_TOKEN_SECRET_SIGNATURE,
-        env.ACCESS_TOKEN_LIFE
-    )
-    return { accessToken }
+  const decoded = await jwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
+  const savedToken = await redis.get(`refreshToken:${decoded._id.toString()}`)
+
+  if (!savedToken || savedToken !== clientRefreshToken) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, "Refresh token invalid")
+  }
+
+  const accessToken = await jwtProvider.generateToken(
+    { _id: decoded._id, email: decoded.email, role: decoded.role },
+    env.ACCESS_TOKEN_SECRET_SIGNATURE,
+    env.ACCESS_TOKEN_LIFE
+  )
+  return { accessToken }
 }
 
+const logout = async (req, res) => {
+  // 1. Lấy refresh token từ cookie
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) {
+    return res.status(StatusCodes.BAD_REQUEST).json({ message: "Không tìm thấy token" });
+  }
+
+  // 2. Giải mã token để lấy userId
+  const decoded = await jwtProvider.verifyToken(refreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE);
+  const userId = decoded._id.toString(); // ObjectId từ Mongo
+
+  // 3. Xóa refresh token trong Redis
+  await redis.del(`refreshToken:${userId}`);
+};
+
 const getAllUsers = async () => {
-    const users = await User.find({ _destroy: false }).select('-password -verifyToken')
-    return users
+  const users = await User.find({ _destroy: false }).select('-password -verifyToken')
+  return users
 }
 
 const getUserById = async (id) => {
-    const user = await User.findById(id).select('-password -verifyToken')
-    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
-    return user
+  const user = await User.findById(id).select('-password -verifyToken')
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  return user
 }
 
 const updateUser = async (id, updateData) => {
-    const user = await User.findById(id)
-    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  const user = await User.findById(id)
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
 
-    Object.assign(user, updateData)
-    const updatedUser = await user.save()
-    return pickUser(updatedUser)
+  Object.assign(user, updateData)
+  const updatedUser = await user.save()
+  return pickUser(updatedUser)
 }
 
 const deleteUser = async (id) => {
-    const user = await User.findById(id)
-    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  const user = await User.findById(id)
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
 
-    user._destroy = true
-    await user.save()
-    return pickUser(user)
+  user._destroy = true
+  await user.save()
+  return pickUser(user)
 }
 
 const getResetPasswordLink = (token, email) => {
-    return `http://localhost:3000/reset-password?token=${token}&email=${email}`
+  return `http://localhost:3000/reset-password?token=${token}&email=${email}`
 }
 
 export const forgotPassword = async (email) => {
-    const user = await User.findOne({ email })
-    if (!user) throw new ApiError('User not found')
+  const user = await User.findOne({ email })
+  if (!user) throw new ApiError('User not found')
 
-    // Tạo reset token + thời hạn
-    const token = uuidv4()
-    user.resetPasswordToken = token
-    user.resetPasswordExpires = Date.now() + 3 * 60 * 1000 // 3 phút
-    await user.save()
+  // Tạo reset token + thời hạn
+  const token = uuidv4()
+  user.resetPasswordToken = token
+  user.resetPasswordExpires = Date.now() + 3 * 60 * 1000 // 3 phút
+  await user.save()
 
-    // Tạo link
-    const resetLink = getResetPasswordLink(token, user.email)
+  // Tạo link
+  const resetLink = getResetPasswordLink(token, user.email)
 
-    // Nội dung email HTML
-    const htmlContent = `
+  // Nội dung email HTML
+  const htmlContent = `
       <h2>Password Reset Request</h2>
       <p>You have requested to reset your password.</p>
       <p>Click the link below to continue:</p>
@@ -148,52 +183,54 @@ export const forgotPassword = async (email) => {
       <p>This link will expire in <strong>3 minutes</strong>.</p>
     `
 
-    // Gửi email bằng Gmail OAuth2
-    await GoogleMailerProvider.sendEmail({
-        to: user.email,
-        toName: user.name || 'User',
-        subject: 'Reset Your Password',
-        html: htmlContent
-    })
+  // Gửi email bằng Gmail OAuth2
+  await GoogleMailerProvider.sendEmail({
+    to: user.email,
+    toName: user.name || 'User',
+    subject: 'Reset Your Password',
+    html: htmlContent
+  })
 
-    return { message: 'Reset password email sent successfully' }
+  return { message: 'Reset password email sent successfully' }
 }
+
 export const resetPassword = async ({ email, token, newPassword }) => {
-    console.log("Reset token:", token)
-    console.log("Reset email:", email)
-    const user = await User.findOne({ email, resetPasswordToken: token })
-    console.log("Found user:", user)
-    if (!user) throw new ApiError('Invalid or expired token')
+  console.log("Reset token:", token)
+  console.log("Reset email:", email)
+  const user = await User.findOne({ email, resetPasswordToken: token })
+  console.log("Found user:", user)
+  if (!user) throw new ApiError('Invalid or expired token')
 
-    if (user.resetPasswordExpires < Date.now()) {
-        throw new ApiError(StatusCodes.GONE, 'Token expired')
+  if (user.resetPasswordExpires < Date.now()) {
+    throw new ApiError(StatusCodes.GONE, 'Token expired')
+  }
+
+  user.password = newPassword
+  user.resetPasswordToken = null
+  user.resetPasswordExpires = null
+
+  await user.save()
+
+  return {
+    message: 'Password updated successfully',
+    user: {
+      id: user._id,
+      email: user.email,
+      name: user.name
     }
-
-    user.password = newPassword
-    user.resetPasswordToken = null
-    user.resetPasswordExpires = null
-
-    await user.save()
-
-    return {
-        message: 'Password updated successfully',
-        user: {
-            id: user._id,
-            email: user.email,
-            name: user.name
-        }
-    }
+  }
 }
 
 export const userService = {
-    createNew,
-    verifyAccount,
-    login,
-    refreshToken,
-    getAllUsers,
-    getUserById,
-    updateUser,
-    deleteUser,
-    forgotPassword,
-    resetPassword
+  createNew,
+  verifyAccount,
+  login,
+  refreshToken,
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  forgotPassword,
+  resetPassword,
+  logout
 }

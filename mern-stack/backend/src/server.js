@@ -8,6 +8,8 @@ import { env } from '~/config/environment.js'
 import { APIs_V1 } from '~/routes/v1/index.js'
 import { corsOptions } from '~/config/cors.js'
 
+import client, { connectRedis } from '~/config/redis.js'
+
 const START_SERVER = () => {
     const app = express()
 
@@ -29,6 +31,8 @@ const START_SERVER = () => {
         try {
             await CONNECT_DB()
             console.log('Database connected successfully')
+            await connectRedis()
+            console.log('Redis connected successfully')
             START_SERVER()
             console.log('Server started successfully')
         } catch (error) {

@@ -23,18 +23,32 @@ const login = async (req, res, next) => {
     try {
         const user = await userService.login(req.body)
 
+        // res.cookie('accessToken', user.accessToken, {
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: 'none',
+        //     maxAge: ms('14 days')
+        // })
+
+        // res.cookie('refreshToken', user.refreshToken, {
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: 'none',
+        //     maxAge: ms('14 days')
+        // })
+
         res.cookie('accessToken', user.accessToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
-            maxAge: ms('14 days')
+            maxAge: ms('2 minutes')
         })
 
         res.cookie('refreshToken', user.refreshToken, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
-            maxAge: ms('14 days')
+            maxAge: ms('2 minutes')
         })
 
         return res.status(StatusCodes.OK).json(user)
@@ -45,17 +59,25 @@ const login = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
     try {
-        res.clearCookie('accessToken')
-        res.clearCookie('refreshToken')
-        return res.status(StatusCodes.OK).json({ message: 'Logged out successfully' })
+        await userService.logout(req, res);
+
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+
+        return res.status(StatusCodes.OK).json({ message: "Đã đăng xuất thành công" });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
 const refreshToken = async (req, res, next) => {
     try {
-        const result = await userService.refreshToken(req.cookies?.refreshToken)
+        const clientRefreshToken = req.cookies?.refreshToken
+        if (!clientRefreshToken) {
+            throw new ApiError(StatusCodes.UNAUTHORIZED, "No refresh token provided")
+        }
+
+        const result = await userService.refreshToken(clientRefreshToken)
 
         res.cookie('accessToken', result.accessToken, {
             httpOnly: true,
@@ -66,7 +88,7 @@ const refreshToken = async (req, res, next) => {
 
         return res.status(StatusCodes.OK).json(result)
     } catch (error) {
-        next(new ApiError(StatusCodes.FORBIDDEN, 'Invalid refresh token, please login again'))
+        next(error)
     }
 }
 

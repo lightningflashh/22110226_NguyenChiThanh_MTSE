@@ -1,14 +1,17 @@
-import React from 'react'
+import React, {useState} from 'react'
 import { useForm } from 'react-hook-form'
 import { loginUserAPI } from '~/redux/user/userSlice' 
 import { toast } from 'react-toastify'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid'
 
 const Login = () => {
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+
+  const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = async (data) => {
     const actionResult = await dispatch(loginUserAPI(data))
@@ -50,11 +53,11 @@ const Login = () => {
             </div>
 
             {/* Password Field */}
-            <div>
+            <div className='relative'>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300">Mật khẩu</label>
               <input 
                 id="password"
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 {...register('password', { 
                   required: 'Mật khẩu là bắt buộc',
                   minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
@@ -62,6 +65,13 @@ const Login = () => {
                 className={`mt-2 w-full border-b-2 ${errors.password ? 'border-red-500' : 'border-gray-600'} bg-gray-700 text-white rounded-t-lg p-3 shadow-inner focus:outline-none focus:border-blue-400 transition duration-150 ease-in-out placeholder-gray-500`}
                 placeholder="********"
               />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute right-3 top-10 text-gray-400 hover:text-gray-200 focus:outline-none"
+              >
+                {showPassword ? <EyeSlashIcon className="h-5 w-5"/> : <EyeIcon className="h-5 w-5"/>}
+              </button>
               {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
